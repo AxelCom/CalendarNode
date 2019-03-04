@@ -1,25 +1,30 @@
 {
-  "name": "calendar",
+  "name": "calendarjs",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AxelCom/CalendarNode.git"
+    "url": "git+https://github.com/barman81/CalendarJs.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/AxelCom/CalendarNode/issues"
+    "url": "https://github.com/barman81/CalendarJs/issues"
   },
-  "homepage": "https://github.com/AxelCom/CalendarNode#readme",
+  "homepage": "https://github.com/barman81/CalendarJs#readme",
   "dependencies": {
     "express": "^4.16.4",
-    "jsonwebtoken": "^8.4.0",
+    "jsonwebtoken": "^8.5.0",
     "passport": "^0.4.0",
-    "passport-jwt": "^4.0.0"
+    "passport-jwt": "^4.0.0",
+    "passport-local": "^1.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^1.15.3"
   }
 }

@@ -1,77 +1,120 @@
-const express = require('express')
-const jwt = require('jsonwebtoken')
-const bodyParser = require('body-parser')
-const urlEncodedParser = bodyParser.urlencoded({ extended: false })
-//const passport = require('passport’)
-//const JwtStrategy = require('passport-jwt').Strategy
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const bodyParser = require("body-parser");
+const urlEncodedParser = bodyParser.urlencoded({ extended: false });
+const app = express();
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+var user = require('./User');
+var event = require('./Event');
+const PORT = process.env.PORT || 5000;
+const JwtStrategy = require("passport-jwt").Strategy;
+const ExtractJwt = require("passport-jwt").ExtractJwt;
+const passport = require("passport");
 
-const secret = 'testsecret'
-const app = express()
+const tabUser = [];
 
+const opts = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: "superSecret"
+};
 
-var users = [
-    {password: 'admin', email: 'admin@hotmail.fr'}
-]
+passport.use(
+  new JwtStrategy(opts, function(jwt_payload, done) {
+    console.log(jwt_payload);
+    done(null, "test");
+  })
+);
 
-var events = [
-    {nom: 'Réunion Projet Symfony',description:'Réunion Symfony avec l\'équipe pour une mise au point' , dateDeb:'12/08/2019 12:00', dateFin:'12/08/2019 14:00', user: 'admin@hotmail.fr'}
-]
-
-
+app.get('/', function (req, res){
+    res.send('Accueil')
+});
 
 app.get('/public', (req, res) => {
-    res.send('I am public folks!')
-})
+  res.send("Page public");
+});
 
-app.get('/events', (req, res) => {
-    res.send('Retourne events du user connecté')
-})
-
-app.post('/signup', urlEncodedParser, (req,res)=>{
-    var userpass = req.body.mdp
-    var usermail = req.body.mail
-
-    var user = users.find(function(user){
-        return user.email === usermail
-    })
-
-    if(!user){
-        users.push({email: usermail,password: userpass})
-        res.send('Utilisateur ajouté')
+app.post('/signin',urlEncodedParser,(req, res) => {
+    const theUser = tabUser.find(user => user.mail === req.body.mail);
+    if(!theUser){
+        const email = req.body.mail;
+        const password = req.body.password;
+        unUser = new user(email, password);
+        tabUser.push(unUser);
+        res.send("Utilisateur enregistre");
+    }else{
+        res.send("Adresse mail deja utilise");
     }
-    else{
-        res.status(401).json({error: 'Cet email est déjà utilisé'})
-    }
-})
+});
 
 app.post('/login', urlEncodedParser, (req, res) => {
-    var userpass = req.body.mdp
-    var usermail = req.body.mail
+    const email = req.body.mail;
+    const password = req.body.password;
 
-
-    var user = users.find(function(user){
-        return user.email === usermail
-    })
-
-    if(user){
-        if(user.password === userpass){
-            var token = jwt.sign({password: userpass, email: usermail},secret)
-            res.json({
-                jwt: token
-            })
-        }
-        else{
-            res.status(401).json({error: 'Mot de passe incorrect'})
-        }
-    }
-    else
-    {
-        res.status(401).json({error: 'Utilisateur inexistant'})
+    if (!email || !password) {
+        res.status(401).json({ error: "Veuillez saisir un email et un mot de passe." });
+        return;
     }
 
+    const user = tabUser.find(user => user.mail === email);
 
-})
+    if (!user) {
+        res.status(401).json({ error: "Utilisateur inexistant" });
+        return;
+    }else if (user.password !== password){
+        res.status(401).json({ error: "Mot de passe incorrect !" });
+        return;
+    }
 
-app.listen(3000, () => {
-    console.log('app running on port 3000')
-})
+    const userJwt = jwt.sign({ user: email }, "superSecret");
+
+    res.json({
+        jwt: userJwt
+    });
+});
+
+app.get('/private',passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    res.send("Voici une page privee : " + unUser.mail );
+  }
+);
+
+app.post('/addEvent', urlEncodedParser ,passport.authenticate("jwt", { session: false }),
+    (req, res) => {
+        const idEvent = req.body.idEvent;
+        const title = req.body.title;
+        const description = req.body.dateFin;
+        const dateDebut = req.body.dateDebut;
+        const dateFin = req.body.dateFin;
+        const mailUser = unUser.mail;
+        theEvent = new event(idEvent,title,description,dateDebut,dateFin,mailUser);
+        unUser.addEvent(theEvent);
+        res.send("evenement ajout�");
+    }
+);
+
+app.get('/events',passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    res.send(unUser.getListEvent());
+  }
+);
+
+app.get('/event',passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    const idEvent = req.body.idEvent;
+    result = unUser.getEvent(idEvent);
+    res.send(result);
+  }
+);
+
+app.get('/deleteEvent', urlEncodedParser ,passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    const idEvent = req.body.idEvent;
+    unUser.deleteEvent(idEvent);
+    res.send("evenement supprim�");
+  }
+);
+
+app.listen(PORT, () => {
+  console.log("app running on port " + PORT);
+});
